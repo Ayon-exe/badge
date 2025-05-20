@@ -1,0 +1,65 @@
+// backend/config/dbIndexes.js
+const connectDB = require("./db");
+const logger = require("../logger");
+
+async function dbIndexes() {
+  try {
+    const db = await connectDB();
+    logger.info("Setting up optimized database indexes...");
+
+    // Drop existing indexes first to avoid duplication
+    // await db.collection("unified_cves").dropIndexes();
+    // await db.collection("watchlist").dropIndexes();
+
+    // Create proper indexes for watchlist queries
+    await db
+      .collection("unified_cves")
+      .createIndex({ cve_id: 1 }, { name: "idx_cve_id", unique: true });
+
+    // Add the critical index for the feed query performance
+    await db
+      .collection("unified_cves")
+      .createIndex(
+        { "cpe.vendor": 1, "cpe.product": 1, published_at: -1 },
+        { name: "idx_vendor_product_pubdate" }
+      );
+
+    // Also keep these indexes for specific queries
+    await db
+      .collection("unified_cves")
+      .createIndex(
+        { "cpe.vendor": 1, published_at: -1 },
+        { name: "idx_vendor_pubdate" }
+      );
+
+    await db
+      .collection("unified_cves")
+      .createIndex(
+        { "cpe.product": 1, published_at: -1 },
+        { name: "idx_product_pubdate" }
+      );
+
+    // Index for watchlist access
+    await db
+      .collection("watchlist")
+      .createIndex({ username: 1 }, { name: "idx_watchlist_username" });
+
+    // Create indexes for resolution_status collection
+    await db.collection("resolution_status").createIndex({ username: 1 });
+    await db.collection("resolution_status").createIndex({ "cves.cve_id": 1 });
+    await db.collection("resolution_status").createIndex({ "cves.status": 1 });
+
+    // Create indexes for resolution_logs collection
+    await db.collection("resolution_logs").createIndex({ username: 1 });
+    await db
+      .collection("resolution_logs")
+      .createIndex({ "logs.timestamp": -1 });
+    await db.collection("resolution_logs").createIndex({ "logs.cve_id": 1 });
+
+    logger.info("Database indexes created successfully");
+  } catch (error) {
+    logger.error("Error creating indexes:", error);
+  }
+}
+
+module.exports = dbIndexes;

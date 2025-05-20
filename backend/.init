@@ -1,0 +1,19 @@
+#!/bin/bash
+
+#jq install
+sudo apt install jq
+sudo apt install unzip
+arch="arm64"
+
+# Check if the file does not exist
+if [ ! -e "utils/cvemap" ]; then
+	wget "https://github.com/projectdiscovery/cvemap/releases/download/v0.0.7/cvemap_0.0.7_linux_${arch}.zip"
+	unzip "cvemap_0.0.7_linux_${arch}.zip"
+	rm "README.md"
+	rm "LICENSE"
+	rm "cvemap_0.0.7_linux_${arch}.zip"
+	mv "cvemap" "./utils/"
+    else
+	        echo "sourcing... "
+fi
+export PATH=$PATH:$(pwd)/utils

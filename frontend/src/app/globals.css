@@ -1,0 +1,332 @@
+@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@plugin 'tailwindcss-animate';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+}
+
+@layer utilities {
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .recharts-responsive-container {
+    height: initial !important;
+  }
+}
+
+
+@layer base {
+  :root {
+    --background: 238 100% 6%;
+    --foreground: 210 40% 98%;
+    --card: 225 100% 8%;
+    --card-foreground: 210 40% 98%;
+    --popover: 225 100% 8%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 224 21% 26%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 224 21% 26%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 224 21% 26%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 224 21% 26%;
+    --input: 224 21% 26%;
+    --ring: 224.3 76.3% 48%;
+    --radius: 0.5rem;
+    --chart-1: 194 100% 50%;
+    --chart-5: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-2: 330 100% 62%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 225 100% 8%;
+    --card-foreground: 210 40% 98%;
+    --popover: 225 100% 8%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 224 21% 26%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 224 21% 26%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 224 21% 26%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 224 21% 26%;
+    --input: 224 21% 26%;
+    --ring: 224.3 76.3% 48%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+
+
+
+@layer base {
+  * {
+    @apply border-border;
+    @apply rounded-none;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* styles for table scrollbar on events page */
+.scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #00B3F3 #1E233B;
+}
+
+.scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar::-webkit-scrollbar-thumb {
+  background-color: #282F47;
+  border-radius: 10px;
+  border: 2px solid #1E233B;
+}
+
+.scrollbar::-webkit-scrollbar-track {
+  background-color: #1E233B;
+  border-radius: 10px;
+  border: 2px solid #282F47;
+}
+
+/* styles for circular graphs on home page */
+.radial-graphs-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  max-width: 800px; /* add a max-width to prevent it from taking up too much space*/
+}
+
+.radial-graphs-container > * {
+  width: 100%;
+  height: 100%;
+}
+
+.footer {
+  margin-top: auto;
+}
+
+/*hide unhide labels on navbar*/
+/* Hide icon labels on small screens */
+
+/* Show icon labels on medium screens and above */
+@media (min-width: 768px) {
+  .md:inline-block {
+    display: inline-block;
+  }
+}
+
+/* fade animations, not used anywhere */
+.animate-fade-out {
+  animation: fade-out 0.5s forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s forwards;
+}
+
+@keyframes fade-out {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* search page trial searchbar */
+.search-input {
+  /* Add some basic styling to the input element */
+  padding: 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  font-size: 1.5rem;
+  width: 50%;
+  background-color: #333;
+  color: #fff;
+  outline: none;
+}
+
+/* Create a container to center the input element */
+.search-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+}
+
+/* sliding animations for search page */
+.search-container {
+  transition: transform 0.3s ease-in-out;
+}
+
+.slide-up {
+  transform: translateY(-20px);
+}
+
+.slide-up-results {
+  max-height: 0;
+  transform: translateY(100px);
+  transition: max-height 0.1s ease-in-out, transform 0.3s ease-in-out;
+  transition-delay: 0.3s;
+  overflow: hidden;
+}
+
+.slide-up-results.show {
+  max-height: 1000px; /* Set this to a high value to allow the content to expand */
+  transform: translateY(0);
+  transition: max-height 0.1s ease-in-out, transform 0.3s ease-in-out;
+}
+.text-green{
+  color: #0be63e;
+}
+
+.sidebar {
+  @apply w-64 bg-white p-4 border-r border-gray-200;
+}
+
+.sidebar h2 {
+  @apply text-lg font-bold mb-4;
+}
+
+.sidebar h3 {
+  @apply text-sm font-bold mb-2;
+}
+
+.sidebar select {
+  @apply bg-background border rounded-md px-3 py-2;
+}
+
+.sidebar input[type="checkbox"] {
+  @apply mr-2;
+}
+
+.sidebar span {
+  @apply ml-2;
+}
+/* frontend/src/styles/globals.css */
+.feed-container {
+  @apply flex flex-row w-full mx-10;
+}
+
+.sidebar {
+  @apply w-64 bg-white p-4 border-r border-gray-200;
+  flex-shrink: 0; /* Prevent the sidebar from shrinking */
+}
+
+.feed-content {
+  @apply flex-1;
+  padding-left: 20px; /* Add some padding to separate the sidebar from the content */
+}
+
+@keyframes gradient {
+	0% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+	100% {
+		background-position: 0% 50%;
+	}
+}
+
+
+.card { perspective: 800px;}
+.content {transform-style: preserve-3d;}
+.card:hover .content {transform: rotateY(.5turn);}
+
+.front,
+.back { backface-visibility: hidden;}
+.back{ transform: rotateY(.5turn);}
+

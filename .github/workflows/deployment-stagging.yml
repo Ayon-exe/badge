@@ -1,0 +1,133 @@
+name: Deploy to Azure VM
+
+on:
+  push:
+    branches: [final-demo]
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create zip file of the repo to transfer
+        run: |
+          zip -r deploy.zip . -x "*.git*" "node_modules/*" ".next/*" "coverage/*"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-package
+          path: deploy.zip
+  
+  deploy-run-and-cleanup:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy-package
+      - name: Copy files to Azure VM
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.AZURE_VM_PEM }}
+          source: "deploy.zip"
+          target: "/home/${{ secrets.SERVER_USER }}"
+
+      - name: Run & Deploy on Azure VM
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.AZURE_VM_PEM }}
+          script: |
+            # Install Node.js and npm
+            if ! command -v node &> /dev/null; then
+                # installs nvm (Node Version Manager)
+                curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
+
+                export NVM_DIR="$HOME/.nvm"
+                [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+                [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+                # download and install Node.js (you may need to restart the terminal)
+                nvm install 20
+                # verifies the right Node.js version is in the environment
+                node -v # should print `v20`
+                # verifies the right npm version is in the environment
+                npm -v # should print `10.8`
+            fi
+            # Create app directory if it doesn't exist
+            mkdir -p /home/${{ secrets.SERVER_USER }}/DC-CVE-Engine
+
+            # Navigate to the app directory
+            cd /home/${{ secrets.SERVER_USER }}/DC-CVE-Engine
+
+            # Check if unzip is installed, if not, install it
+            if ! command -v unzip &> /dev/null; then
+                echo "unzip could not be found, installing now..."
+                sudo apt-get update
+                sudo apt-get install -y unzip
+            fi
+
+            # Unzip the deployment package
+            unzip -o /home/${{ secrets.SERVER_USER }}/deploy.zip
+
+            # First run the backend
+            cd backend
+
+            # Install PM2
+            npm install pm2 -g
+
+            # Install dependencies
+            npm ci
+
+            #pm2 path
+            export PATH="$HOME/.nvm/versions/node/v20.18.1/bin:$PATH"
+
+            # Start or restart your Node.js application with PM2
+            pm2 describe DC-CVE-Engine-Backend > /dev/null
+            if [ $? -eq 0 ]; then
+              # Restart the application if it exists
+              pm2 restart DC-CVE-Engine-Backend
+            else
+              # Start the application if it doesn't exist
+              pm2 start npm --name "DC-CVE-Engine-Backend" -- start
+            fi
+
+            # Save the PM2 process list and set it to start on system startup
+            pm2 save
+            pm2 startup
+
+            # Now move to frontend, build and start the PM2 process
+            cd ../frontend
+
+            # Install dependencies
+            npm ci
+
+            # Build the frontend
+            npm run build
+
+            # Start or restart your Next.js application with PM2
+            pm2 describe DC-CVE-Engine-Frontend > /dev/null
+            if [ $? -eq 0 ]; then
+              # Restart the application if it exists
+              pm2 restart DC-CVE-Engine-Frontend
+            else
+              # Start the application if it doesn't exist
+              pm2 start npm --name "DC-CVE-Engine-Frontend" -- start
+            fi
+
+            # Save the PM2 process list and set it to start on system startup
+            pm2 save
+            pm2 startup
+
+            # Clean up
+            rm -rf /home/${{ secrets.SERVER_USER }}/deploy.zip
