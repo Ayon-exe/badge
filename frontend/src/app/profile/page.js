@@ -1,337 +1,269 @@
-"use client";
+"use client"
+import React, { useEffect, useState, useContext } from "react";
+import { useParams, useRouter, Link } from "next/navigation";
+//import UserBadges from "./UserBadges";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import Footer from '@/components/Footer';
+//import api from '../utils/api';
+// import { AuthContext } from "../context/AuthContext";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuthContext } from "@/components/AuthContext";
-
-
-
-export default function Dashboard() {
-  const { user, loading, logout } = useAuthContext();
-  const [redirectTimer, setRedirectTimer] = useState(3);
-  const [totalVendors, setTotalVendors] = useState(<i><Loader2 className="animate-spin" /></i>);
-  const [totalProducts, setTotalProducts] = useState(<i><Loader2 className="animate-spin" /></i>);
-  const [totalOpenCVEs, setTotalOpenCVEs] = useState(<i><Loader2 className="animate-spin" /></i>);
-  const [totalResolvedCVEs, setTotalResolvedCVEs] = useState(<i><Loader2 className="animate-spin" /></i>);
-  const [totalIgnoredCVEs, setTotalIgnoredCVEs] = useState(<i><Loader2 className="animate-spin" /></i>);
-
+const ProfilePage = () => {
+  const { username } = useParams();
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [badges, setBadges] = useState([]);
+  const [recentBadges, setRecentBadges] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("badges");
   
-  const router = useRouter(); // Initialize the router
+  // Get auth state from context
+  // const { isAuthenticated} = useContext(AuthContext);
 
-  const navigateToFeed = (tab) => {
-    router.push(`/feed?tab=${tab}`);
+  // Fetch user details and earned badges from backend
+  useEffect(() => {
+    // Check if user is logged in using AuthContext
+    // if (!isAuthenticated) {
+    //   router.push("/login");
+    //   return;
+    // }
+
+    const fetchUserData = async () => {
+      try {
+        setLoading(true);
+        
+        // First fetch user details
+        try {
+          const userResponse = await api.get(`/user`);
+          setUser(userResponse.data);
+        } catch (userErr) {
+          console.log("Could not fetch detailed user info:", userErr);
+          // Fall back to just using the username from the URL
+          setUser({ username: username });
+        }
+        
+        // Then fetch earned badges
+        try {
+          const badgesResponse = await api.get(`/badges-earned`);
+          console.log("Badge response data:", badgesResponse.data);
+          
+          // The API now returns complete badge objects including all metadata
+          const badgesList = badgesResponse.data.badges || [];
+          setBadges(badgesList);
+          
+          // Get recent badges (last 3)
+          const sortedBadges = [...badgesList].sort((a, b) => 
+            new Date(b.earnedDate) - new Date(a.earnedDate)
+          );
+          setRecentBadges(sortedBadges.slice(0, 3));
+          
+        } catch (badgeErr) {
+          console.error("Error fetching badges:", badgeErr);
+          
+          if (badgeErr.response?.status === 404) {
+            setBadges([]);
+            setRecentBadges([]);
+          } else {
+            setError("Failed to load badges. Please try again later.");
+          }
+        }
+      } catch (err) {
+        console.error("Error in main fetch routine:", err);
+        setError("An unexpected error occurred. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [username, router]);
+
+  // Format date helper
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
   };
-
-  useEffect(() => {
-    if (!user && !loading) {
-      const timer = setInterval(() => {
-        setRedirectTimer((prevTimer) => prevTimer - 1);
-      }, 1000);
-      
-      setTimeout(() => {
-        clearInterval(timer);
-        router.push("/");
-      }, 3000);
-    }
-  }, [loading, user, router]);
-
-  // Add new effect for fetching total vendors
-  useEffect(() => {
-    if (user && !loading) {
-      const fetchTotalVendors = async () => {
-        const token = localStorage.getItem('accessToken');
-        if (!token) {
-          console.log("DEBUG Frontend: No access token found");
-          return;
-        }
-        
-        console.log("DEBUG Frontend: Making API request with token:", token.substring(0, 10) + "...");
-        
-        try {
-          const response = await axios.get(`${process.env.SERVER_URL}/api/dashboard/total-vendors`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          console.log("DEBUG Frontend: Received response:", response.data);
-          setTotalVendors(response.data.totalVendors.toString());
-        } catch (err) {
-          console.error("DEBUG Frontend: Error fetching total vendors:", err);
-          console.log("DEBUG Frontend: Error response data:", err.response?.data);
-          setTotalVendors("Error: " + (err.response?.data?.message || err.message));
-        }
-      };
-
-      fetchTotalVendors();
-    }
-  }, [user, loading]);
-
-  // Add new effect for fetching total products
-  useEffect(() => {
-    if (user && !loading) {
-      const fetchTotalProducts = async () => {
-        const token = localStorage.getItem('accessToken');
-        if (!token) return;
-        
-        try {
-          const response = await axios.get(`${process.env.SERVER_URL}/api/dashboard/total-products`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          setTotalProducts(response.data.totalProducts.toString());
-        } catch (err) {
-          console.error("Error fetching total products:", err);
-          setTotalProducts("0");
-        }
-      };
-      
-      fetchTotalProducts();
-    }
-  }, [user, loading]);
   
-  // Add new effect for fetching total open CVEs
-  useEffect(() => {
-    if (user && !loading) {
-      const fetchTotalOpenCVEs = async () => {
-        const token = localStorage.getItem('accessToken');
-        if (!token) return;
-        
-        try {
-          const response = await axios.get(`${process.env.SERVER_URL}/api/dashboard/total-open-cves`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          setTotalOpenCVEs(response.data.totalOpenCVEs.toString());
-        } catch (err) {
-          console.error("Error fetching total open CVEs:", err);
-          setTotalOpenCVEs("0");
-        }
-      };
-      
-      fetchTotalOpenCVEs();
-    }
-  }, [user, loading]);
+  // Generate avatar initials
+  const getInitials = (name) => {
+    return name ? name.charAt(0).toUpperCase() : "U";
+  };
   
-  // Add new effect for fetching total resolved CVEs
-  useEffect(() => {
-    if (user && !loading) {
-      const fetchTotalResolvedCVEs = async () => {
-        const token = localStorage.getItem('accessToken');
-        if (!token) return;
-        
-        try {
-          const response = await axios.get(`${process.env.SERVER_URL}/api/dashboard/total-resolved-cves`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          setTotalResolvedCVEs(response.data.totalResolvedCVEs.toString());
-        } catch (err) {
-          console.error("Error fetching total resolved CVEs:", err);
-          setTotalResolvedCVEs("0");
-        }
+  // Calculate badge stats
+  const calculateStats = () => {
+    if (!badges || badges.length === 0) {
+      return {
+        total: 0,
+        recent: 0,
+        progress: 0
       };
-      
-      fetchTotalResolvedCVEs();
     }
-  }, [user, loading]);
-  
-  // Add new effect for fetching total ignored CVEs
-  useEffect(() => {
-    if (user && !loading) {
-      const fetchTotalIgnoredCVEs = async () => {
-        const token = localStorage.getItem('accessToken');
-        if (!token) return;
-        
-        try {
-          const response = await axios.get(`${process.env.SERVER_URL}/api/dashboard/total-ignored-cves`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          setTotalIgnoredCVEs(response.data.totalIgnoredCVEs.toString());
-        } catch (err) {
-          console.error("Error fetching total ignored CVEs:", err);
-          setTotalIgnoredCVEs("0");
-        }
-      };
-      
-      fetchTotalIgnoredCVEs();
-    }
-  }, [user, loading]);
-  
-  if (!user && !loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-white text-2xl">
-          You are not authorized to access this page. Redirecting to{" "}
-          <Link href="/" className="text-green">
-            Home
-          </Link>{" "}
-          in {redirectTimer} seconds.
-        </div>
-      </div>
-    );
-  }
     
-  if (loading) { // Check if user is null and loading is false
+    return {
+      total: badges.length,
+      recent: recentBadges.length,
+      progress: Math.min(Math.round((badges.length / 8) * 100), 100) // Assuming 8 total badges
+    };
+  };
+  
+  const stats = calculateStats();
+
+  if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-white text-2xl">Loading...</div>
+      <div className="profile-loading">
+        <div className="loading-spinner"></div>
+        <p>Loading profile...</p>
       </div>
     );
   }
-  
+
   return (
-    <>
+    <div className="profile-page">
       <Navbar />
-      <div className="relative w-full min-h-screen flex justify-center items-center px-16 md:px-0 lg:px-32 xl:px-40">
-        <div className="absolute inset-0 bg-[url('/background.jpg')] bg-cover bg-center bg-fixed filter blur-lg -z-10"></div>
-        {/* Main Content */}
-        <div className="w-[95vw] sm:w-[95vw] md:w-screen lg:w-[80vw] px-2 sm:px-6 md:px-0 lg:px-6 mx-auto bg-blue-950/30 backdrop-blur-md text-white p-2 sm:p-6 md:p-4 lg:p-6 shadow-lg rounded-lg md:rounded-none lg:rounded-lg relative z-10">
-          {/* Desktop and Mobile Layout */}
-          <div className="flex flex-col lg:flex-row gap-4 lg:gap-2 justify-center items-start py-1 sm:py-2 w-full md:px-2 lg:px-0 md:hidden lg:flex">
-            {/* Left column in desktop (Watchlist) */}
-            <div className="w-[91vw] sm:w-full lg:w-1/3 flex flex-col order-2 lg:order-1 mt-4 lg:mt-0">
-              <WatchlistProvider>
-                <Watchlist />
-              </WatchlistProvider>
+      
+      <div className="profile-container">
+        <div className="profile-grid">
+          {/* Left column - User info */}
+          <div className="profile-sidebar glass-card">
+            <div className="profile-header">
+              <div className="profile-avatar">
+                {getInitials(username)}
+              </div>
+              <h2>{user?.username}</h2>
+              {user?.email && <p className="profile-email">{user.email}</p>}
             </div>
             
-            {/* Right column in desktop */}
-            <div className="w-full lg:w-2/3 flex flex-col gap-3 items-start order-1 lg:order-2">
-              <div className="w-full flex flex-wrap justify-between gap-4 sm:gap-6">
-                <DashboardBlock
-                  className="flex-shrink-0"
-                  title1={"Total Vendors"}
-                  desc1={totalVendors}
-                  info1={"across Watchlists"}
-                  title2={"Total Products"}
-                  desc2={totalProducts}
-                  info2={"across Watchlists"}
-                  title3={"Resolved CVE's"}
-                  desc3={totalResolvedCVEs}
-                  info3={"Resolved"}
-                  title4={"Open CVE's"}
-                  desc4={totalOpenCVEs}
-                  info4={"Require Attention"}
-                  title5={"Ignored CVE's"}
-                  desc5={totalIgnoredCVEs}
-                  info5={"Ignored"}
-                  onClickVendor={() => navigateToFeed('')}
-                  onClickProduct={() => navigateToFeed('')}
-                  onClickResolved={() => navigateToFeed('resolved')}
-                  onClickOpen={() => navigateToFeed('open')}
-                  onClickIgnored={() => navigateToFeed('ignored')}
-                />
+            <div className="profile-stats">
+              <div className="stat-item">
+                <div className="stat-value">{stats.total}</div>
+                <div className="stat-label">Total Badges</div>
               </div>
-              <RiskLevel className="mt-4 w-full" />
-              <div className="w-full grow">
-                <div className="flex flex-col md:flex-row lg:flex-row justify-between gap-4 lg:gap-2 order-3">
-                  <div className="w-[91vw] sm:w-full lg:w-3/5">
-                    <Card className="w-full h-auto">
-                      <RecentCVEsChart />
-                    </Card>
-                  </div>
-                  <div className="w-[91vw] sm:w-full lg:w-2/5 mt-4 md:mt-0 lg:mt-0">
-                    <Card className="w-full h-auto">
-                      <UnpatchedCVEs />
-                    </Card>
-                  </div>
+              
+              <div className="stat-item">
+                <div className="stat-value">{stats.recent}</div>
+                <div className="stat-label">Recent</div>
+              </div>
+              
+              <div className="stat-item progress-stat">
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill" 
+                    style={{width: `${stats.progress}%`}}
+                  ></div>
                 </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Tablet Layout Only (768px - 1024px) */}
-          <div className="hidden md:flex lg:hidden flex-col gap-4 justify-center items-start py-1 sm:py-2 w-full px-6">
-            <div className="w-full flex flex-wrap justify-between gap-4 sm:gap-6">
-              <DashboardBlock
-                className="flex-shrink-0"
-                title1={"Total Vendors"}
-                desc1={totalVendors}
-                info1={"across Watchlists"}
-                title2={"Total Products"}
-                desc2={totalProducts}
-                info2={"across Watchlists"}
-                title3={"Resolved CVE's"}
-                desc3={totalResolvedCVEs}
-                info3={"Resolved"}
-                title4={"Open CVE's"}
-                desc4={totalOpenCVEs}
-                info4={"Require Attention"}
-                title5={"Ignored CVE's"}
-                desc5={totalIgnoredCVEs}
-                info5={"Ignored"}
-                onClickVendor={() => navigateToFeed('')}
-                onClickProduct={() => navigateToFeed('')}
-                onClickResolved={() => navigateToFeed('resolved')}
-                onClickOpen={() => navigateToFeed('open')}
-                onClickIgnored={() => navigateToFeed('ignored')}
-              />
-            </div>
-            <RiskLevel className="mt-4 w-full" />
-            
-            {/* Charts section in tablet - full width */}
-            <div className="w-full flex flex-row justify-between gap-4">
-              <div className="w-1/2">
-                <Card className="w-full h-auto">
-                  <RecentCVEsChart />
-                </Card>
-              </div>
-              <div className="w-1/2">
-                <Card className="w-full h-auto">
-                  <UnpatchedCVEs />
-                </Card>
+                <div className="stat-label">{stats.progress}% Complete</div>
               </div>
             </div>
             
-            {/* Watchlist in tablet - positioned below charts */}
-            <div className="w-full mt-4">
-              <WatchlistProvider>
-                <Watchlist />
-              </WatchlistProvider>
+            <div className="profile-actions">
+              <Link className="glass-button">
+                Edit Profile
+              </Link>
+              <Link to="/badges" className="glass-button">
+                All Badges
+              </Link>
             </div>
           </div>
           
-          <div className="flex flex-col md:flex-row lg:flex-row w-full justify-between gap-4 lg:gap-2 mt-4 md:px-2 lg:px-0">
-            <div className="w-[91vw] sm:w-full md:w-1/3 lg:w-1/3">
-              <Card className="w-full h-auto md:h-[345px] lg:h-[345px]">
-                <TopCompaniesChart />
-              </Card>
+          {/* Right column - Badges and content */}
+          <div className="profile-content">
+            {/* Tabs */}
+            <div className="profile-tabs">
+              <button 
+                className={`tab-button ${activeTab === 'badges' ? 'active' : ''}`}
+                onClick={() => setActiveTab('badges')}
+              >
+                Badges
+              </button>
+              <button 
+                className={`tab-button ${activeTab === 'achievements' ? 'active' : ''}`}
+                onClick={() => setActiveTab('achievements')}
+              >
+                Achievements
+              </button>
+              {/* <button 
+                className={`tab-button ${activeTab === 'history' ? 'active' : ''}`}
+                onClick={() => setActiveTab('history')}
+              >
+                History
+              </button> */}
             </div>
             
-            <div className="w-[91vw] sm:w-full md:w-2/3 lg:w-2/3 mt-90 md:mt-0 lg:mt-0">
-              <Card className="w-full">
-                <LiveExploitsTable />
-              </Card>
+            {/* Tab content */}
+            <div className="tab-content glass-card">
+              {activeTab === 'badges' && (
+                <div className="badges-tab">
+                  <h3>My Badges Collection</h3>
+                  {error ? (
+                    <p className="error-message">{error}</p>
+                  ) : (
+                    <UserBadges 
+                      badges={badges} 
+                      size="medium" 
+                      showDates={true} 
+                      badgeActions={(badge) => (
+                        <Link 
+                          to={`/learn-more?id=${badge._id}`}
+                          className="glass-button text-sm mt-2 w-full text-center"
+                        >
+                          View in 3D
+                        </Link>
+                      )}
+                    />
+                  )}
+                </div>
+              )}
+              
+              {activeTab === 'achievements' && (
+                <div className="achievements-tab">
+                  <h3>Achievements</h3>
+                  <p className="coming-soon">Achievements feature coming soon!</p>
+                </div>
+              )}
+              
+              {activeTab === 'history' && (
+                <div className="history-tab">
+                  <h3>Badge History</h3>
+                  {badges.length === 0 ? (
+                    <p className="no-history">No badges earned yet</p>
+                  ) : (
+                    <div className="badge-history">
+                      {[...badges]
+                        .sort((a, b) => new Date(b.earnedDate) - new Date(a.earnedDate))
+                        .map((badge) => (
+                          <div key={badge.id} className="history-item">
+                            <div className="history-badge-icon">
+                              <img src={badge.image} alt={badge.name} />
+                            </div>
+                            <div className="history-badge-info">
+                              <h4>{badge.name}</h4>
+                              <p>Earned on {formatDate(badge.earnedDate)}</p>
+                              {badge.difficulty && (
+                                <p className="badge-difficulty">Difficulty: {badge.difficulty}</p>
+                              )}
+                            </div>
+                            <div className="history-badge-actions">
+                              <Link 
+                                to={`/badge-view/${badge.id}`}
+                                className="glass-button text-sm py-1 px-3"
+                              >
+                                View in 3D
+                              </Link>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
-          
-          {/* Top Companies Section */}
-          <div className="mt-4 w-[91vw] sm:w-full md:px-2 lg:px-0 mb-10">
-            <Card className="w-full">
-              <TopCompanies />
-            </Card>
           </div>
         </div>
       </div>
-      <Footer />
-    </>
+      <Footer/>
+    </div>
   );
-}
+};
+
+export default ProfilePage;
