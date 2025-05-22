@@ -1,269 +1,94 @@
-"use client"
-import React, { useEffect, useState, useContext } from "react";
-import { useParams, useRouter, Link } from "next/navigation";
-//import UserBadges from "./UserBadges";
+"use client";
+import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
-import Footer from '@/components/Footer';
-//import api from '../utils/api';
-// import { AuthContext } from "../context/AuthContext";
 
-const ProfilePage = () => {
-  const { username } = useParams();
-  const router = useRouter();
-  const [user, setUser] = useState(null);
-  const [badges, setBadges] = useState([]);
-  const [recentBadges, setRecentBadges] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("badges");
-  
-  // Get auth state from context
-  // const { isAuthenticated} = useContext(AuthContext);
-
-  // Fetch user details and earned badges from backend
-  useEffect(() => {
-    // Check if user is logged in using AuthContext
-    // if (!isAuthenticated) {
-    //   router.push("/login");
-    //   return;
-    // }
-
-    const fetchUserData = async () => {
-      try {
-        setLoading(true);
-        
-        // First fetch user details
-        try {
-          const userResponse = await api.get(`/user`);
-          setUser(userResponse.data);
-        } catch (userErr) {
-          console.log("Could not fetch detailed user info:", userErr);
-          // Fall back to just using the username from the URL
-          setUser({ username: username });
-        }
-        
-        // Then fetch earned badges
-        try {
-          const badgesResponse = await api.get(`/badges-earned`);
-          console.log("Badge response data:", badgesResponse.data);
-          
-          // The API now returns complete badge objects including all metadata
-          const badgesList = badgesResponse.data.badges || [];
-          setBadges(badgesList);
-          
-          // Get recent badges (last 3)
-          const sortedBadges = [...badgesList].sort((a, b) => 
-            new Date(b.earnedDate) - new Date(a.earnedDate)
-          );
-          setRecentBadges(sortedBadges.slice(0, 3));
-          
-        } catch (badgeErr) {
-          console.error("Error fetching badges:", badgeErr);
-          
-          if (badgeErr.response?.status === 404) {
-            setBadges([]);
-            setRecentBadges([]);
-          } else {
-            setError("Failed to load badges. Please try again later.");
-          }
-        }
-      } catch (err) {
-        console.error("Error in main fetch routine:", err);
-        setError("An unexpected error occurred. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, [username, router]);
-
-  // Format date helper
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  };
-  
-  // Generate avatar initials
-  const getInitials = (name) => {
-    return name ? name.charAt(0).toUpperCase() : "U";
-  };
-  
-  // Calculate badge stats
-  const calculateStats = () => {
-    if (!badges || badges.length === 0) {
-      return {
-        total: 0,
-        recent: 0,
-        progress: 0
-      };
-    }
-    
-    return {
-      total: badges.length,
-      recent: recentBadges.length,
-      progress: Math.min(Math.round((badges.length / 8) * 100), 100) // Assuming 8 total badges
-    };
-  };
-  
-  const stats = calculateStats();
-
-  if (loading) {
-    return (
-      <div className="profile-loading">
-        <div className="loading-spinner"></div>
-        <p>Loading profile...</p>
-      </div>
-    );
-  }
-
+export default function Page() {
   return (
-    <div className="profile-page">
+    <>
       <Navbar />
-      
-      <div className="profile-container">
-        <div className="profile-grid">
-          {/* Left column - User info */}
-          <div className="profile-sidebar glass-card">
-            <div className="profile-header">
-              <div className="profile-avatar">
-                {getInitials(username)}
-              </div>
-              <h2>{user?.username}</h2>
-              {user?.email && <p className="profile-email">{user.email}</p>}
+      <main className="bg-[#00011E] text-white min-h-screen p-4 md:p-8">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-5 gap-6">
+          {/* Sidebar */}
+          <aside className="md:col-span-1 bg-[#0C0E3C] p-4 rounded-xl flex flex-col items-center">
+            <div className="border-4 border-purple-500 rounded-full p-1 mb-4">
+              <img
+                src="/images/user.png" // Replace with actual image path
+                alt="User Image"
+                className="rounded-full w-24 h-24 object-cover"
+              />
             </div>
-            
-            <div className="profile-stats">
-              <div className="stat-item">
-                <div className="stat-value">{stats.total}</div>
-                <div className="stat-label">Total Badges</div>
-              </div>
-              
-              <div className="stat-item">
-                <div className="stat-value">{stats.recent}</div>
-                <div className="stat-label">Recent</div>
-              </div>
-              
-              <div className="stat-item progress-stat">
-                <div className="progress-bar">
-                  <div 
-                    className="progress-fill" 
-                    style={{width: `${stats.progress}%`}}
-                  ></div>
+            <h2 className="text-lg font-bold text-center">User</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 items-center mt-6 gap-4">
+              {["1", "2", "3", "4", "5"].map((badge, i) => (
+                <div key={i} className="flex justify-center">
+                  <img
+                    src={`/images/img${badge}.png`}
+                    alt={`${badge} badge`}
+                    className="w-40 rounded-full border-2 border-purple-500"
+                  />
                 </div>
-                <div className="stat-label">{stats.progress}% Complete</div>
-              </div>
+              ))}
             </div>
-            
-            <div className="profile-actions">
-              <Link className="glass-button">
-                Edit Profile
-              </Link>
-              <Link to="/badges" className="glass-button">
-                All Badges
-              </Link>
-            </div>
-          </div>
-          
-          {/* Right column - Badges and content */}
-          <div className="profile-content">
-            {/* Tabs */}
-            <div className="profile-tabs">
-              <button 
-                className={`tab-button ${activeTab === 'badges' ? 'active' : ''}`}
-                onClick={() => setActiveTab('badges')}
-              >
-                Badges
-              </button>
-              <button 
-                className={`tab-button ${activeTab === 'achievements' ? 'active' : ''}`}
-                onClick={() => setActiveTab('achievements')}
-              >
-                Achievements
-              </button>
-              {/* <button 
-                className={`tab-button ${activeTab === 'history' ? 'active' : ''}`}
-                onClick={() => setActiveTab('history')}
-              >
-                History
-              </button> */}
-            </div>
-            
-            {/* Tab content */}
-            <div className="tab-content glass-card">
-              {activeTab === 'badges' && (
-                <div className="badges-tab">
-                  <h3>My Badges Collection</h3>
-                  {error ? (
-                    <p className="error-message">{error}</p>
-                  ) : (
-                    <UserBadges 
-                      badges={badges} 
-                      size="medium" 
-                      showDates={true} 
-                      badgeActions={(badge) => (
-                        <Link 
-                          to={`/learn-more?id=${badge._id}`}
-                          className="glass-button text-sm mt-2 w-full text-center"
-                        >
-                          View in 3D
-                        </Link>
-                      )}
-                    />
-                  )}
-                </div>
-              )}
-              
-              {activeTab === 'achievements' && (
-                <div className="achievements-tab">
-                  <h3>Achievements</h3>
-                  <p className="coming-soon">Achievements feature coming soon!</p>
-                </div>
-              )}
-              
-              {activeTab === 'history' && (
-                <div className="history-tab">
-                  <h3>Badge History</h3>
-                  {badges.length === 0 ? (
-                    <p className="no-history">No badges earned yet</p>
-                  ) : (
-                    <div className="badge-history">
-                      {[...badges]
-                        .sort((a, b) => new Date(b.earnedDate) - new Date(a.earnedDate))
-                        .map((badge) => (
-                          <div key={badge.id} className="history-item">
-                            <div className="history-badge-icon">
-                              <img src={badge.image} alt={badge.name} />
-                            </div>
-                            <div className="history-badge-info">
-                              <h4>{badge.name}</h4>
-                              <p>Earned on {formatDate(badge.earnedDate)}</p>
-                              {badge.difficulty && (
-                                <p className="badge-difficulty">Difficulty: {badge.difficulty}</p>
-                              )}
-                            </div>
-                            <div className="history-badge-actions">
-                              <Link 
-                                to={`/badge-view/${badge.id}`}
-                                className="glass-button text-sm py-1 px-3"
-                              >
-                                View in 3D
-                              </Link>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-      <Footer/>
-    </div>
-  );
-};
+          </aside>
 
-export default ProfilePage;
+          {/* Main Content */}
+          <section className="md:col-span-4 grid gap-6">
+            {/* Achievements */}
+            <div className="bg-[#0C0E3C] p-6 rounded-xl">
+              <h3 className="text-xl font-semibold mb-4">Achievements</h3>
+              <ul className="list-disc pl-5 space-y-2 text-sm md:text-base">
+                <li>Completed 6 courses in Red Teaming, OSINT & Forensics Verticals</li>
+                <li>Completed Red Teaming Career Path</li>
+                <li>Completed Level 1 and Level 2 Cyber Titan Workshops</li>
+                <li>Completed 6 months fellowship as Red Teamer in Deepcytes</li>
+              </ul>
+            </div>
+
+            {/* Badge Info */}
+            <div className="bg-[#0C0E3C] p-6 rounded-xl grid md:grid-cols-3 gap-6">
+              <div className="flex items-center justify-center md:justify-start">
+                <img src="/images/img1.png" alt="SSL badge" className="w-20 h-20" />
+              </div>
+              <div className="md:col-span-2">
+                <h3 className="text-xl font-semibold mb-2">Badge Info</h3>
+                <div className="flex justify-between text-sm text-gray-300">
+                  <div>
+                    <p className="font-semibold text-white">Date</p>
+                    <p>Aug 21, 2024</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white">Level</p>
+                    <p>Medium</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white">Earners</p>
+                    <p>400</p>
+                  </div>
+                </div>
+                <p className="mt-4 text-sm">
+                  This badge is given to <span className="text-green-400 font-semibold">User</span> who successfully
+                  completed the course of <span className="font-semibold text-blue-400">Cyber Agent (Level 1 of Cyber Titan Workshop)</span>.
+                </p>
+                <a href="#" className="text-blue-400 text-sm underline mt-2 inline-block">
+                  View this badge
+                </a>
+              </div>
+            </div>
+
+            {/* Courses */}
+            <div className="bg-[#0C0E3C] p-6 rounded-xl">
+              <h3 className="text-xl font-semibold mb-4">Courses</h3>
+              <ul className="list-disc pl-5 space-y-2 text-sm md:text-base">
+                <li>Cybersecurity Essentials</li>
+                <li>Graduation in Social Engineering</li>
+                <li>Spyware & Ransomware</li>
+                <li>Everything about iOS & Android Security</li>
+              </ul>
+            </div>
+          </section>
+        </div>
+      </main>
+      <Footer />
+    </>
+  );
+}
